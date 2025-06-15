@@ -1,89 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <title>RA con Three.js</title>
+    <meta charset="utf-8" />
+    <title>Three.js WebXR AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: sans-serif;
-      }
-
-      #enter-ar {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        padding: 10px 20px;
-        font-size: 16px;
-        background: #2196f3;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        z-index: 10;
-        cursor: pointer;
-      }
-
-      canvas {
-        display: block;
-      }
-    </style>
   </head>
-  <body>
-    <button id="enter-ar">Iniciar RA</button>
-    <script type="module">
-      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
-      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
-
-      let scene, camera, renderer, controller;
-
-      const button = document.getElementById('enter-ar');
-
-      button.addEventListener('click', async () => {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera();
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
-
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        scene.add(light);
-
-        const loader = new GLTFLoader();
-        loader.load(
-          'd20.glb', // Debe estar en el mismo repo
-          function (gltf) {
-            const model = gltf.scene;
-            model.position.set(0, 0, -1); // Frente a la cámara
-            model.scale.set(0.2, 0.2, 0.2);
-            scene.add(model);
-          },
-          undefined,
-          function (error) {
-            console.error('Error cargando GLB:', error);
-          }
-        );
-
-        document.body.appendChild(renderer.domElement);
-
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test'],
-        });
-
-        renderer.xr.setSession(session);
-
-        function animate() {
-          renderer.setAnimationLoop(() => {
-            renderer.render(scene, camera);
-          });
-        }
-
-        animate();
-        button.style.display = 'none';
-      });
-    </script>
+  <body style="margin: 0; overflow: hidden">
+    <script type="module" src="app.js"></script>
   </body>
 </html>
