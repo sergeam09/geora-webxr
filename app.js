@@ -1,84 +1,61 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
+import * as THREE from 'https://cdn.skypack.dev/three';
+import { ARButton } from 'https://cdn.skypack.dev/three/examples/jsm/webxr/ARButton.js';
 
-let camera, scene, renderer, controller;
+let camera, scene, renderer;
+let controller;
 
 init();
+animate();
 
 function init() {
-  const button = document.getElementById('enter-ar');
-  button.addEventListener('click', () => {
-    button.style.display = 'none';
-    startAR();
-  });
-}
+  const container = document.createElement('div');
+  document.body.appendChild(container);
 
-function startAR() {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera();
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  document.body.appendChild(renderer.domElement);
+  camera = new THREE.PerspectiveCamera(
+    70,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    20
+  );
 
-  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-
+  // Luz ambiente
   const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
   light.position.set(0.5, 1, 0.25);
   scene.add(light);
 
-  const loader = new GLTFLoader();
-  const modelUrl = "https://cdn.glitch.global/771caf19-0e11-4748-8377-e566473f2e90/d20_icosahedron.glb?v=1749879173778";
+  // Cubo simple
+  const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+  const material = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+  const cube = new THREE.Mesh(geometry, material);
+  cube.position.set(0, 0, -0.5); // medio metro frente al usuario
+  scene.add(cube);
 
-  const reticle = new THREE.Mesh(
-    new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-  );
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  container.appendChild(renderer.domElement);
 
-  const controller = renderer.xr.getController(0);
-  controller.addEventListener('select', () => {
-    if (reticle.visible) {
-      loader.load(modelUrl, (gltf) => {
-        const model = gltf.scene;
-        model.position.setFromMatrixPosition(reticle.matrix);
-        model.scale.set(0.2, 0.2, 0.2);
-        scene.add(model);
-      });
-    }
-  });
+  // Botón de RA
+  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+  // Controlador
+  controller = renderer.xr.getController(0);
   scene.add(controller);
 
-  const session = renderer.xr.getSession();
-  let xrHitTestSource = null;
-  let xrRefSpace = null;
+  window.addEventListener('resize', onWindowResize);
+}
 
-  session.requestReferenceSpace('viewer').then((refSpace) => {
-    session.requestHitTestSource({ space: refSpace }).then((source) => {
-      xrHitTestSource = source;
-    });
-  });
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
-  session.requestReferenceSpace('local').then((refSpace) => {
-    xrRefSpace = refSpace;
-  });
-
-  renderer.setAnimationLoop((timestamp, frame) => {
-    if (frame) {
-      const hitTestResults = frame.getHitTestResults(xrHitTestSource);
-      if (hitTestResults.length > 0 && xrRefSpace) {
-        const hit = hitTestResults[0];
-        const pose = hit.getPose(xrRefSpace);
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
-      } else {
-        reticle.visible = false;
-      }
-    }
+function animate() {
+  renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
   });
 }
